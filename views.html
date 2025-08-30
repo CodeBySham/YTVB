@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced YouTube Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 50rem;
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .container:hover {
+            transform: scale(1.01);
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            background: linear-gradient(to right, #2563eb, #9333ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #d1d5db;
+            border-radius: 0.75rem;
+            outline: none;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .grid {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .grid-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        
+        input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+            accent-color: #3b82f6;
+        }
+        
+        .checkbox-group span {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 1.125rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #3b82f6, #9333ea);
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(to right, #2563eb, #7c3aed);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            transform: scale(1.02);
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .btn-small {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        
+        .btn-green { background-color: #10b981; color: white; }
+        .btn-yellow { background-color: #f59e0b; color: white; }
+        .btn-red { background-color: #ef4444; color: white; }
+        .btn-blue { background-color: #3b82f6; color: white; }
+        .btn-purple { background-color: #8b5cf6; color: white; }
+        
+        .btn-green:hover:not(:disabled) { background-color: #059669; transform: scale(1.02); }
+        .btn-yellow:hover:not(:disabled) { background-color: #d97706; transform: scale(1.02); }
+        .btn-red:hover:not(:disabled) { background-color: #dc2626; transform: scale(1.02); }
+        .btn-blue:hover:not(:disabled) { background-color: #2563eb; transform: scale(1.02); }
+        .btn-purple:hover:not(:disabled) { background-color: #7c3aed; transform: scale(1.02); }
+        
+        .btn-small:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .player-container {
+            margin-top: 2rem;
+        }
+        
+        .player-wrapper {
+            background: #000;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        .loading-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            flex-direction: column;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .message.error {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+        }
+        
+        .message.success {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+        }
+        
+        .message.info {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+        }
+        
+        .message.warning {
+            background-color: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #d97706;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .grid-layout {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .grid-1 { grid-template-columns: 1fr; }
+        .grid-2-layout { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+        .grid-multi { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        
+        .status-bar {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+            text-align: center;
+        }
+        
+        .api-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        
+        .api-status.ready {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .api-status.loading {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        @media (max-width: 767px) {
+            .container {
+                padding: 1.5rem;
+                margin: 0.5rem;
+            }
+            
+            h1 { font-size: 1.5rem; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .grid-2-layout { grid-template-columns: 1fr; }
+            .control-buttons { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎥 Enhanced YouTube Player</h1>
+        
+        <div class="status-bar">
+            YouTube API Status: 
+            <span id="api-status" class="api-status loading">Loading...</span>
+        </div>
+        
+        <div class="form-group">
+            <label for="youtube-url">📺 YouTube URL</label>
+            <input 
+                id="youtube-url" 
+                type="text" 
+                placeholder="e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            >
+        </div>
+
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="iframe-count">🔢 Number of Players</label>
+                <input id="iframe-count" type="number" min="1" max="10" value="1">
+            </div>
+
+            <div class="form-group">
+                <label for="start-time">⏰ Start Time (seconds)</label>
+                <input id="start-time" type="number" min="0" value="0" placeholder="0">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="grid grid-3">
+                <label class="checkbox-group">
+                    <input id="autoplay" type="checkbox" checked>
+                    <span>🚀 Autoplay</span>
+                </label>
+
+                <label class="checkbox-group">
+                    <input id="loop" type="checkbox" checked>
+                    <span>🔄 Loop</span>
+                </label>
+
+                <label class="checkbox-group">
+                    <input id="mute" type="checkbox">
+                    <span>🔇 Start Muted</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="grid grid-2">
+                <label class="checkbox-group">
+                    <input id="controls" type="checkbox" checked>
+                    <span>🎮 Show Controls</span>
+                </label>
+
+                <label class="checkbox-group">
+                    <input id="modest" type="checkbox" checked>
+                    <span>🎨 Minimal Branding</span>
+                </label>
+            </div>
+        </div>
+
+        <button id="create-btn" class="btn btn-primary">
+            ✨ Create Players
+        </button>
+
+        <div class="control-buttons hidden" id="control-panel">
+            <button id="play-all-btn" class="btn-small btn-green">
+                ▶️ Play All
+            </button>
+            <button id="pause-all-btn" class="btn-small btn-yellow">
+                ⏸️ Pause All
+            </button>
+            <button id="stop-all-btn" class="btn-small btn-red">
+                ⏹️ Stop All
+            </button>
+            <button id="mute-toggle-btn" class="btn-small btn-blue">
+                🔇 Mute All
+            </button>
+            <button id="sync-btn" class="btn-small btn-purple">
+                🔄 Sync All
+            </button>
+        </div>
+
+        <div class="control-buttons hidden" id="utility-panel">
+            <button id="restart-btn" class="btn-small btn-green">
+                🔄 Restart
+            </button>
+            <button id="youtube-btn" class="btn-small btn-blue">
+                🌐 YouTube
+            </button>
+            <button id="clear-btn" class="btn-small btn-red">
+                🗑️ Clear
+            </button>
+        </div>
+
+        <div id="player-container" class="player-container"></div>
+        
+        <div id="message" class="message hidden"></div>
+    </div>
+
+    <script>
+        // Load YouTube Iframe API
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        let players = [];
+        let apiReady = false;
+        let currentVideoId = null;
+        let playersReady = 0;
+        let totalPlayers = 0;
+        let isMuted = false;
+
+        // YouTube API ready callback
+        function onYouTubeIframeAPIReady() {
+            apiReady = true;
+            document.getElementById('api-status').textContent = 'Ready';
+            document.getElementById('api-status').className = 'api-status ready';
+            console.log('YouTube Iframe API is ready');
+        }
+
+        function extractYouTubeId(url) {
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+                /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+                /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+                /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/
+            ];
+            
+            for (let pattern of patterns) {
+                const match = url.match(pattern);
+                if (match && match[1]) {
+                    return match[1];
+                }
+            }
+            return null;
+        }
+
+        function showMessage(type, text) {
+            const messageEl = document.getElementById('message');
+            const icons = {
+                error: '❌',
+                success: '✅', 
+                info: 'ℹ️',
+                warning: '⚠️'
+            };
+            
+            messageEl.className = `message ${type}`;
+            messageEl.innerHTML = `<strong>${icons[type]} ${type.charAt(0).toUpperCase() + type.slice(1)}:</strong> ${text}`;
+            messageEl.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageEl.classList.add('hidden');
+            }, 5000);
+        }
+
+        function createLoadingIndicator(text = 'Loading player...') {
+            const loading = document.createElement('div');
+            loading.className = 'loading-indicator';
+            loading.innerHTML = `
+                <div class="spinner"></div>
+                <div>${text}</div>
+            `;
+            return loading;
+        }
+
+        function createPlayers() {
+            if (!apiReady) {
+                showMessage('warning', 'YouTube API is still loading. Please wait...');
+                return;
+            }
+
+            const urlInput = document.getElementById('youtube-url').value.trim();
+            const count = Math.min(parseInt(document.getElementById('iframe-count').value) || 1, 100);
+            const startTime = parseInt(document.getElementById('start-time').value) || 0;
+            const container = document.getElementById('player-container');
+            
+            const options = {
+                autoplay: document.getElementById('autoplay').checked,
+                loop: document.getElementById('loop').checked,
+                mute: document.getElementById('mute').checked,
+                controls: document.getElementById('controls').checked,
+                modest: document.getElementById('modest').checked,
+                startTime: startTime
+            };
+
+            // Clear previous content
+            container.innerHTML = '';
+            players = [];
+            playersReady = 0;
+            totalPlayers = count;
+            document.getElementById('control-panel').classList.add('hidden');
+            document.getElementById('utility-panel').classList.add('hidden');
+
+            // Extract video ID
+            const videoId = extractYouTubeId(urlInput);
+            if (!videoId) {
+                showMessage('error', 'Please enter a valid YouTube URL');
+                return;
+            }
+
+            currentVideoId = videoId;
+
+            // Set grid layout
+            if (count === 1) {
+                container.className = 'player-container grid-layout grid-1';
+            } else if (count === 2) {
+                container.className = 'player-container grid-layout grid-2-layout';
+            } else {
+                container.className = 'player-container grid-layout grid-multi';
+            }
+
+            // Create players
+            for (let i = 0; i < count; i++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'player-wrapper';
+                
+                const playerDiv = document.createElement('div');
+                playerDiv.id = `player-${i}`;
+                
+                const loadingDiv = createLoadingIndicator(`Loading Player ${i + 1}...`);
+                
+                wrapper.appendChild(loadingDiv);
+                wrapper.appendChild(playerDiv);
+                container.appendChild(wrapper);
+
+                // Create YouTube player using the API
+                const player = new YT.Player(`player-${i}`, {
+                    height: '315',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: {
+                        'autoplay': options.autoplay ? 1 : 0,
+                        'loop': options.loop ? 1 : 0,
+                        'playlist': options.loop ? videoId : '',
+                        'mute': options.mute ? 1 : 0,
+                        'controls': options.controls ? 1 : 0,
+                        'modestbranding': options.modest ? 1 : 0,
+                        'rel': 0,
+                        'showinfo': 0,
+                        'start': startTime
+                    },
+                    events: {
+                        'onReady': (event) => {
+                            players.push(event.target);
+                            playersReady++;
+                            loadingDiv.style.display = 'none';
+                            
+                            console.log(`Player ${i + 1} is ready (${playersReady}/${totalPlayers})`);
+                            
+                            if (playersReady === totalPlayers) {
+                                document.getElementById('control-panel').classList.remove('hidden');
+                                document.getElementById('utility-panel').classList.remove('hidden');
+                                showMessage('success', `All ${totalPlayers} players are ready! Use the controls below.`);
+                                
+                                // Auto-start if enabled
+                                if (options.autoplay) {
+                                    setTimeout(() => {
+                                        playAllVideos();
+                                    }, 1000);
+                                }
+                            }
+                        },
+                        'onError': (event) => {
+                            console.error(`Player ${i + 1} error:`, event.data);
+                            loadingDiv.innerHTML = `
+                                <div style="color: #ef4444;">
+                                    <div style="font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
+                                    <div>Player ${i + 1} Error</div>
+                                    <div style="font-size: 0.75rem; margin-top: 0.5rem;">Error code: ${event.data}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                });
+            }
+
+            showMessage('info', `Creating ${count} player(s)... Please wait.`);
+        }
+
+        // Control functions
+        function playAllVideos() {
+            players.forEach((player, index) => {
+                try {
+                    player.playVideo();
+                    console.log(`Playing player ${index + 1}`);
+                } catch (error) {
+                    console.error(`Error playing player ${index + 1}:`, error);
+                }
+            });
+            showMessage('info', `Play command sent to ${players.length} player(s)`);
+        }
+
+        function pauseAllVideos() {
+            players.forEach((player, index) => {
+                try {
+                    player.pauseVideo();
+                } catch (error) {
+                    console.error(`Error pausing player ${index + 1}:`, error);
+                }
+            });
+            showMessage('info', `Pause command sent to ${players.length} player(s)`);
+        }
+
+        function stopAllVideos() {
+            players.forEach((player, index) => {
+                try {
+                    player.stopVideo();
+                } catch (error) {
+                    console.error(`Error stopping player ${index + 1}:`, error);
+                }
+            });
+            showMessage('info', `Stop command sent to ${players.length} player(s)`);
+        }
+
+        function toggleMuteAll() {
+            const btn = document.getElementById('mute-toggle-btn');
+            isMuted = !isMuted;
+            
+            players.forEach((player, index) => {
+                try {
+                    if (isMuted) {
+                        player.mute();
+                    } else {
+                        player.unMute();
+                    }
+                } catch (error) {
+                    console.error(`Error toggling mute player ${index + 1}:`, error);
+                }
+            });
+            
+            btn.textContent = isMuted ? '🔊 Unmute All' : '🔇 Mute All';
+            showMessage('info', `${isMuted ? 'Muted' : 'Unmuted'} ${players.length} player(s)`);
+        }
+
+        function syncAllVideos() {
+            if (players.length === 0) return;
+            
+            try {
+                const masterTime = players[0].getCurrentTime();
+                players.forEach((player, index) => {
+                    if (index > 0) {
+                        player.seekTo(masterTime, true);
+                    }
+                });
+                showMessage('info', `Synced all players to ${masterTime.toFixed(1)} seconds`);
+            } catch (error) {
+                console.error('Error syncing players:', error);
+                showMessage('error', 'Could not sync players');
+            }
+        }
+
+        function clearAllPlayers() {
+            players.forEach(player => {
+                try {
+                    player.destroy();
+                } catch (error) {
+                    console.error('Error destroying player:', error);
+                }
+            });
+            
+            players = [];
+            playersReady = 0;
+            totalPlayers = 0;
+            document.getElementById('player-container').innerHTML = '';
+            document.getElementById('control-panel').classList.add('hidden');
+            document.getElementById('utility-panel').classList.add('hidden');
+            showMessage('info', 'All players cleared');
+        }
+
+        // Event listeners
+        document.getElementById('create-btn').addEventListener('click', createPlayers);
+        document.getElementById('play-all-btn').addEventListener('click', playAllVideos);
+        document.getElementById('pause-all-btn').addEventListener('click', pauseAllVideos);
+        document.getElementById('stop-all-btn').addEventListener('click', stopAllVideos);
+        document.getElementById('mute-toggle-btn').addEventListener('click', toggleMuteAll);
+        document.getElementById('sync-btn').addEventListener('click', syncAllVideos);
+        document.getElementById('restart-btn').addEventListener('click', createPlayers);
+        document.getElementById('clear-btn').addEventListener('click', clearAllPlayers);
+
+        document.getElementById('youtube-btn').addEventListener('click', () => {
+            if (currentVideoId) {
+                const startTime = parseInt(document.getElementById('start-time').value) || 0;
+                const url = `https://www.youtube.com/watch?v=${currentVideoId}${startTime > 0 ? `&t=${startTime}` : ''}`;
+                window.open(url, '_blank');
+            }
+        });
+
+        // Enter key support
+        document.getElementById('youtube-url').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                createPlayers();
+            }
+        });
+
+        // Auto-focus URL input
+        document.getElementById('youtube-url').focus();
+    </script>
+</body>
+
+</html>
