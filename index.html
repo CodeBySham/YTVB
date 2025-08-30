@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Iframe Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-4 text-center text-gray-800">YouTube Iframe Generator</h1>
+    <div class="mb-4">
+      <label for="youtube-url" class="block text-sm font-medium text-gray-700">YouTube URL</label>
+      <input
+        id="youtube-url"
+        type="text"
+        placeholder="e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        class="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+    </div>
+    <div class="mb-4">
+      <label for="iframe-count" class="block text-sm font-medium text-gray-700">Number of Iframes</label>
+      <input
+        id="iframe-count"
+        type="number"
+        min="1"
+        value="1"
+        class="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+    </div>
+    <div class="flex space-x-2">
+      <button
+        id="start-btn"
+        class="flex-1 bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
+      >
+        Start
+      </button>
+      <button
+        id="start-all-btn"
+        class="flex-1 bg-green-500 text-white p-2 rounded-md hover:bg-green-600 transition hidden"
+        disabled
+      >
+        Start All
+      </button>
+    </div>
+    <div id="iframe-container" class="mt-6 grid gap-4"></div>
+    <p id="error-message" class="mt-4 text-red-500 text-center hidden"></p>
+    <p id="local-warning" class="mt-4 text-yellow-600 text-center hidden">Note: This page may require a web server (e.g., http://localhost) for the YouTube API to work correctly.</p>
+  </div>
+
+  <script>
+    // Load YouTube Iframe API
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    let players = []; // Store YouTube player instances
+    let apiReady = false;
+    let playablePlayers = 0; // Track playable players
+
+    function onYouTubeIframeAPIReady() {
+      apiReady = true;
+      console.log('YouTube Iframe API is ready');
+    }
+
+    function extractYouTubeId(url) {
+      const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+      return url.match(regex) ? url.match(regex)[1] : null;
+    }
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+      const urlInput = document.getElementById('youtube-url').value;
+      const countInput = parseInt(document.getElementById('iframe-count').value) || 1;
+      const container = document.getElementById('iframe-container');
+      const errorMessage = document.getElementById('error-message');
+      const startAllBtn = document.getElementById('start-all-btn');
+      const localWarning = document.getElementById('local-warning');
+
+      // Clear previous content
+      container.innerHTML = '';
+      errorMessage.classList.add('hidden');
+      startAllBtn.classList.add('hidden');
+      startAllBtn.disabled = true;
+      players = [];
+      playablePlayers = 0;
+
+      // Check if running locally
+      if (window.location.protocol === 'file:') {
+        localWarning.classList.remove('hidden');
+      } else {
+        localWarning.classList.add('hidden');
+      }
+
+      // Extract video ID
+      const videoId = extractYouTubeId(urlInput);
+      if (!videoId) {
+        errorMessage.textContent = 'Please enter a valid YouTube URL.';
+        errorMessage.classList.remove('hidden');
+        return;
+      }
+
+      // Wait for API to be ready
+      const createPlayers = () => {
+        if (!apiReady) {
+          setTimeout(createPlayers, 100); // Poll until API is ready
+          return;
+        }
+
+        // Generate iframes
+        for (let i = 0; i < Math.min(countInput, 10); i++) {
+          const iframeDiv = document.createElement('div');
+          iframeDiv.id = `player-${i}`;
+          iframeDiv.className = 'rounded-md';
+          container.appendChild(iframeDiv);
+
+          // Create YouTube player
+          const player = new YT.Player(`player-${i}`, {
+            height: '315',
+            width: '100%',
+            videoId: videoId,
+            playerVars: {
+              'rel': 0,
+              'showinfo': 0
+            },
+            events: {
+              'onReady': (event) => {
+                players.push(event.target);
+                playablePlayers++;
+                console.log(`Player ${i} is ready`);
+                // Enable Start All button if at least one player is playable
+                if (playablePlayers > 0) {
+                  startAllBtn.classList.remove('hidden');
+                  startAllBtn.disabled = false;
+                }
+              },
+              'onError': (event) => {
+                console.error(`Player ${i} error:`, event.data);
+                let errorText = '';
+                if (event.data === 150 || event.data === 101) {
+                  errorText = 'This video cannot be embedded (owner restrictions). Try another YouTube URL.';
+                } else {
+                  errorText = `Error loading video in player ${i} (code: ${event.data}).`;
+                }
+                errorMessage.textContent = errorText;
+                errorMessage.classList.remove('hidden');
+              }
+            }
+          });
+        }
+
+        // Update grid layout
+        container.className = `mt-6 grid gap-4 ${countInput > 1 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`;
+      };
+
+      createPlayers();
+    });
+
+    // Start All button event listener
+    document.getElementById('start-all-btn').addEventListener('click', () => {
+      console.log('Starting all players:', players.length, 'playable:', playablePlayers);
+      players.forEach((player, index) => {
+        try {
+          player.playVideo();
+          console.log(`Playing player ${index}`);
+        } catch (error) {
+          console.error(`Error playing player ${index}:`, error);
+          errorMessage.textContent = `Error playing video in player ${index}.`;
+          errorMessage.classList.remove('hidden');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
